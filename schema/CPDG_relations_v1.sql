@@ -3,7 +3,7 @@ CREATE TABLE business (
     name varchar(20),
     state varchar(20),
     city varchar(20),
-    zipcode varchar(5),
+    zipcode varchar(5) NOT NULL,
     FOREIGN KEY (zipcode) REFERENCES zipcode(zipcodeNumber)
     Primary Key businessId
 );
@@ -20,8 +20,8 @@ CREATE TABLE rating (
     reviewId char(22),
     stars int,
     text varchar(1500),
-    businessId char(22),
-    userId char(22),
+    businessId char(22) NOT NULL,
+    userId char(22) NOT NULL,
     FOREIGN KEY (businessId) REFERENCES business(businessId),
     FOREIGN KEY (userId) REFERENCES user(userId),
     Primary Key reviewId
