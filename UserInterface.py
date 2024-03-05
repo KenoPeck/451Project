@@ -14,8 +14,11 @@ class Milestone1(QMainWindow):
         super(Milestone1, self).__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-        self.ui.enterPW.clicked.connect(self.loadStateList)
-        #self.loadStateList()
+        self.ui.enterPW.clicked.connect(self.connectUI)
+        
+
+    def connectUI(self):
+        self.loadStateList()
         self.ui.stateList.currentTextChanged.connect(self.stateChanged)
         self.ui.cityList.itemSelectionChanged.connect(self.cityChanged)
         self.ui.bName.textChanged.connect(self.getBusinessNames)
@@ -39,7 +42,6 @@ class Milestone1(QMainWindow):
         sql_str = "SELECT distinct state FROM business ORDER BY state;"
         try:
             results = self.executeQuery(sql_str)
-            print(results)
             for row in results:
                 self.ui.stateList.addItem(row[0])
         except:
