@@ -54,7 +54,6 @@ class Milestone1(QMainWindow):
         state = self.ui.stateList.currentText()
         if (self.ui.stateList.currentIndex() >= 0):
             sql_str = "SELECT distinct city FROM business WHERE state ='" + state + "' ORDER BY city;"
-            print(sql_str)
             try:
                 results = self.executeQuery(sql_str)
                 for row in results:
