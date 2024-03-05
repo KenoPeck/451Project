@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>997</width>
-    <height>598</height>
+    <height>628</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -18,7 +18,7 @@
     <property name="geometry">
      <rect>
       <x>0</x>
-      <y>0</y>
+      <y>30</y>
       <width>981</width>
       <height>541</height>
      </rect>
@@ -27,7 +27,7 @@
      <string notr="true">font: 12pt &quot;Lucida Sans&quot;;</string>
     </property>
     <property name="currentIndex">
-     <number>1</number>
+     <number>0</number>
     </property>
     <widget class="QWidget" name="page">
      <property name="geometry">
@@ -244,6 +244,46 @@ font: 10pt &quot;Lucida Sans&quot;;</string>
       </widget>
      </widget>
     </widget>
+   </widget>
+   <widget class="QLineEdit" name="databasePW">
+    <property name="geometry">
+     <rect>
+      <x>220</x>
+      <y>1</y>
+      <width>321</width>
+      <height>31</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_5">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>6</y>
+      <width>201</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">font: 12pt &quot;Lucida Sans&quot;;
+color: rgb(255, 0, 0);</string>
+    </property>
+    <property name="text">
+     <string>Database Password:</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="enterPW">
+    <property name="geometry">
+     <rect>
+      <x>560</x>
+      <y>0</y>
+      <width>93</width>
+      <height>28</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Enter</string>
+    </property>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">

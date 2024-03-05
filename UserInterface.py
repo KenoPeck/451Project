@@ -14,7 +14,8 @@ class Milestone1(QMainWindow):
         super(Milestone1, self).__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-        self.loadStateList()
+        self.ui.enterPW.clicked.connect(self.loadStateList)
+        #self.loadStateList()
         self.ui.stateList.currentTextChanged.connect(self.stateChanged)
         self.ui.cityList.itemSelectionChanged.connect(self.cityChanged)
         self.ui.bName.textChanged.connect(self.getBusinessNames)
@@ -22,7 +23,8 @@ class Milestone1(QMainWindow):
 
     def executeQuery(self, sql_str):
         try:
-            conn = psycopg2.connect("dbname='milestone1db' user='postgres' host='localhost' password='D4t4b4s3PW!'")
+            password = self.ui.databasePW.text()
+            conn = psycopg2.connect("dbname='milestone1db' user='postgres' host='localhost' password='" + password + "'")
         except:
             print('Unable to connect to the database!')
         cur = conn.cursor()
