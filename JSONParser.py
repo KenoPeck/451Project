@@ -1,117 +1,150 @@
-
 import json
 
-def formatForSQL(str):
-    return str.replace("'","''").replace("\n"," ")
 
-def getAttributes(attr):
-    attrList = []
-    for (attribute, value) in list(attr.items()):
+def cleanStr4SQL(s):
+    return s.replace("'","''").replace("\n"," ")
+
+def getAttributes(attributes):
+    L = []
+    for (attribute, value) in list(attributes.items()):
         if isinstance(value, dict):
-            attrList += getAttributes(value)
+            L += getAttributes(value)
         else:
-            attrList.append((attribute,value))
-    return attrList
+            L.append((attribute,value))
+    return L
 
-def parseBusinessData():
-    print("Parsing Business Data...")
-    infile = open('.//yelp_business.JSON','r')
-    outfile =  open('.//yelp_business.txt', 'w')
-    rawDataLine = infile.readline()
-    numLines = 0
-    while rawDataLine:
-        data = json.loads(rawDataLine)
-        business = data['business_id']
-        business_str =  "'" + formatForSQL(data['name']) + "','" + formatForSQL(data['address']) + "','" + \
-                        formatForSQL(data['city']) + "','" + data['state'] + "','" + data['postal_code'] + "'," +  \
-                        str(data['latitude']) + "," + str(data['longitude']) + "," + str(data['stars']) + "," + \
-                        str(data['review_count']) + "," + str(data['is_open'])
+def parseBusinessLine(data):
+    return \
+        "'" + cleanStr4SQL(data['name']) + "'," + \
+        "'" + cleanStr4SQL(data['address']) + "'," + \
+        "'" + cleanStr4SQL(data['city']) + "'," +  \
+        "'" + data['state'] + "'," + \
+        "'" + data['postal_code'] + "'," +  \
+        str(data['latitude']) + "," +  \
+        str(data['longitude']) + "," + \
+        str(data['stars']) + "," + \
+        str(data['review_count']) + "," + \
+        str(data['is_open'])
+
+def parseBusinessJson(jsonFile, outfile):
+    line = jsonFile.readline()
+
+    while line:
+        data = json.loads(line)
+        
+        business_str =  parseBusinessLine(data)
         outfile.write(business_str + '\n')
 
-        for categ in data['categories']:
-            categoryStr = "'" + business + "','" + categ + "'"
-            outfile.write(categoryStr + '\n')
+        #business id
+        business = data['business_id']
 
+        #get categories
+        for category in data['categories']:
+            category_str = "'" + business + "','" + category + "'"
+            outfile.write(category_str + '\n')
+
+        #get hours
         for (day,hours) in data['hours'].items():
             hours_str = "'" + business + "','" + str(day) + "','" + str(hours.split('-')[0]) + "','" + str(hours.split('-')[1]) + "'"
             outfile.write( hours_str +'\n')
 
+        #get attributes
         for (attr,value) in getAttributes(data['attributes']):
             attr_str = "'" + business + "','" + str(attr) + "','" + str(value)  + "'"
             outfile.write(attr_str +'\n')
 
-        rawDataLine = infile.readline()
-        numLines += 1
-    print(numLines)
-    outfile.close()
-    infile.close()
-    
-def parseReviewData():
-    print("Parsing Review Data...")
-    infile = open('.//yelp_review.JSON','r')
-    outfile =  open('.//yelp_review.txt', 'w')
-    rawDataLine = infile.readline()
-    numLines = 0
-    while rawDataLine:
-        data = json.loads(rawDataLine)
-        review_str = "'" + data['review_id'] + "','" + data['user_id'] + "','" + \
-                        data['business_id'] + "'," + str(data['stars']) + ",'" + \
-                        data['date'] + "','" + formatForSQL(data['text']) + "'," +  \
-                        str(data['useful']) + "," + str(data['funny']) + "," + str(data['cool'])
-        outfile.write(review_str +'\n')
-        rawDataLine = infile.readline()
-        numLines +=1
-    print(numLines)
-    outfile.close()
-    infile.close()
+        line = jsonFile.readline()
 
-def parseUserData():
-    print("Parsing User Data...")
-    infile = open('.//yelp_user.JSON','r')
-    outfile =  open('.//yelp_user.txt', 'w')
-    rawDataLine = infile.readline()
-    numLines = 0
-    while rawDataLine:
-        data = json.loads(rawDataLine)
-        user_id = data['user_id']
-        user_str = "'" + user_id + "','" + formatForSQL(data["name"]) + "','" + \
-                    formatForSQL(data["yelping_since"]) + "'," + str(data["review_count"]) + "," + \
-                    str(data["fans"]) + "," + str(data["average_stars"]) + "," + str(data["funny"]) + "," + \
-                    str(data["useful"]) + "," + str(data["cool"])
+def parseReviewLine(data):
+    return \
+        "'" + data['review_id'] + "'," +  \
+        "'" + data['user_id'] + "'," + \
+        "'" + data['business_id'] + "'," + \
+        str(data['stars']) + "," + \
+        "'" + data['date'] + "'," + \
+        "'" + cleanStr4SQL(data['text']) + "'," +  \
+        str(data['useful']) + "," +  \
+        str(data['funny']) + "," + \
+        str(data['cool'])
+
+def parseReviewJson(jsonFile, outfile):
+    line = jsonFile.readline()
+    while line:
+        data = json.loads(line)
+        review_str = parseReviewLine(data)
+        outfile.write(review_str +'\n')
+        line = jsonFile.readline()
+
+#parse top level json data of single user
+def parseUserLine(data):
+    return \
+        "'" + data['user_id'] + "'," + \
+        "'" + cleanStr4SQL(data["name"]) + "'," + \
+        "'" + cleanStr4SQL(data["yelping_since"]) + "'," + \
+        str(data["review_count"]) + "," + \
+        str(data["fans"]) + "," + \
+        str(data["average_stars"]) + "," + \
+        str(data["funny"]) + "," + \
+        str(data["useful"]) + "," + \
+        str(data["cool"])
+        
+def parseUserJson(jsonFile, outfile):
+    line = jsonFile.readline()
+    while line:
+        data = json.loads(line)
+        
+        user_str = parseUserLine(data)
         outfile.write(user_str+"\n")
 
+        user_id = data["user_id"]
         for friend in data["friends"]:
-            friend_str = "'" + user_id + "','" + friend + "'\n"
+            friend_str = "'" + user_id + "','" + friend + "'" + "\n"
             outfile.write(friend_str)
-        rawDataLine = infile.readline()
-        numLines +=1
+        line = jsonFile.readline()
+    
+def parseCheckinJson(jsonFile, outfile):
+    line = jsonFile.readline()
 
-    print(numLines)
-    outfile.close()
-    infile.close()
-
-def parseCheckinData():
-    print("Parsing Checkin Data...")
-    infile = open('.//yelp_checkin.JSON','r')
-    outfile = open('yelp_checkin.txt', 'w')
-    rawDataLine = infile.readline()
-    numLines = 0
-    while rawDataLine:
-        data = json.loads(rawDataLine)
+    while line:
+        data = json.loads(line)
         business_id = data['business_id']
         for (dayofweek,time) in data['time'].items():
             for (hour,count) in time.items():
-                checkin_str = "'" + business_id + "','" + dayofweek + "','" + hour + "'," + str(count)
+                checkin_str = "'" + business_id + "',"  \
+                                "'" + dayofweek + "'," + \
+                                "'" + hour + "'," + \
+                                str(count)
                 outfile.write(checkin_str + "\n")
-        rawDataLine = infile.readline()
-        numLines +=1
-    print(numLines)
+        line = jsonFile.readline()
+
+def parseJsonData(filename, dataType):
+    jsonFile = open(filename,"r")
+    outfile =  open(filename + ".txt", "w")
+    print("parsing " + dataType)
+
+    match dataType:
+        case "business":
+            parseBusinessJson(jsonFile, outfile)
+
+        case "user":
+            parseUserJson(jsonFile, outfile)
+
+        case "review":
+            parseReviewJson(jsonFile, outfile)
+
+        case "checkin":
+            parseCheckinJson(jsonFile, outfile)
+
+        case _:
+            print("unknown data type")
+
     outfile.close()
-    infile.close()
+    jsonFile.close()
 
 
-parseBusinessData()
-parseUserData()
-parseCheckinData()
-parseReviewData()
+parseJsonData(".//yelp_user.JSON", "user")
+parseJsonData(".//yelp_business.JSON", "business")
+parseJsonData(".//yelp_checkin.JSON", "checkin")
+parseJsonData(".//yelp_review.JSON", "review")
+
 
