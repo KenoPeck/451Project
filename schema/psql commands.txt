@@ -1,2 +1,3 @@
 psql -h localhost -p 5432 -U postgres
 psql -U postgres -d milestone1db < CPDG_relations_v1.sql
+\copy MySales (pname, discount, month, price) FROM './mySalesData.csv' DELIMITER ',' CSV
