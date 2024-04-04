@@ -3,7 +3,8 @@
 
 SELECT businessId, EXTRACT(days from MAX(rating.date)-MIN(rating.date)) as businessAge
 FROM rating
-GROUP BY businessId;
+GROUP BY businessId
+ORDER BY businessAge;
 
 -- average rating difference
 
@@ -16,7 +17,8 @@ WHERE business.businessId <> competetor.businessId and
                 category IN (SELECT category 
                         FROM BusinessCategory
                         WHERE BusinessCategory.businessId = competetor.businessId))
-GROUP BY business.businessId;
+GROUP BY business.businessId
+ORDER BY ratingDifference;
 
 -- popular
 
@@ -26,10 +28,12 @@ SELECT business.businessId as businessId, business.review_count/ages.businessAge
 FROM business, (SELECT businessId, EXTRACT(days from MAX(rating.date)-MIN(rating.date)) as businessAge
                 FROM rating
                 GROUP BY businessId) ages
-WHERE business.businessId = ages.businessId and ages.businessAge <> 0;
+WHERE business.businessId = ages.businessId and ages.businessAge <> 0
+ORDER BY reviewFrequency;
 
 -- checkins per person
 
 SELECT businessId, business.numCheckins/CAST(zipcodeData.population as FLOAT) as localPopularity
 FROM business, zipcodeData
-WHERE business.zipcode = zipcodeData.zipcode;
+WHERE business.zipcode = zipcodeData.zipcode
+ORDER BY localPopularity;
