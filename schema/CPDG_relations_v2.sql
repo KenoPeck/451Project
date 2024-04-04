@@ -8,11 +8,11 @@ CREATE TABLE zipcodeData (
 
 CREATE TABLE business (
     businessId char(22),
-    name varchar(100),
+    name varchar(100) NOT NULL,
     neighborhood varchar(30),
     address varchar(200),
-    city varchar(20),
-    state varchar(20),
+    city varchar(20) NOT NULL,
+    state varchar(20) NOT NULL,
     zipcode varchar(5) NOT NULL,
     latitude varchar(15),
     longitude varchar(15),
@@ -28,7 +28,7 @@ CREATE TABLE business (
 CREATE TABLE BusinessAttribute (
     businessId char(22),
     name VARCHAR(64),
-    value VARCHAR(64),
+    value VARCHAR(64) NOT NULL,
     FOREIGN KEY (businessId) REFERENCES business(businessId),
     Primary Key (businessId, name)
 );
@@ -43,8 +43,8 @@ CREATE TABLE BusinessCategory (
 CREATE TABLE BusinessHours (
     businessId char(22),
     day VARCHAR(10),
-    openTime TIME,
-    closeTime TIME,
+    openTime TIME NOT NULL,
+    closeTime TIME NOT NULL,
     FOREIGN KEY (businessId) REFERENCES business(businessId),
     Primary Key (businessId, day)
 );
@@ -58,7 +58,7 @@ CREATE TABLE rating (
     reviewId char(22),
     userId char(22) NOT NULL,
     businessId char(22) NOT NULL,
-    stars int,
+    stars int NOT NULL,
     date DATE,
     text varchar(1500),
     useful_vote int,
@@ -72,7 +72,7 @@ CREATE TABLE checkin (
     businessId char(22),
     day varchar(9),
     hour TIME,
-    count int,
+    count int NOT NULL,
     Primary Key (businessId, day, hour),
     FOREIGN KEY (businessId) REFERENCES business(businessId)
 );
