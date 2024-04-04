@@ -1,34 +1,32 @@
 -- success
 -- business age
 
-SELECT businessId, MAX(rating.date)-MIN(rating.date) as businessAge
+SELECT businessId, EXTRACT(days from MAX(rating.date)-MIN(rating.date)) as businessAge
 FROM rating
 GROUP BY businessId;
 
--- average rating percentile
+-- average rating difference
 
-SELECT business.businessId, business.reviewrating-competetors.competetorrating as ratingDifference
-FROM business, (SELECT business.businessId as businessId, AVG(competetor.reviewrating) as competetorrating
-                FROM business as competetor, business
-                WHERE (SELECT category
-                    FROM BusinessCategory
-                    WHERE BusinessCategory.businessId = competetor.businessId)
-                    IN
-                    (SELECT category
-                    FROM BusinessCategory
-                    WHERE BusinessCategory.businessId = business.businessId)
-                GROUP BY business.businessId) competetors
-WHERE business.businessId = competetors.businessId;
+SELECT business.businessId as businessId, business.reviewrating - AVG(competetor.reviewrating) as ratingDifference
+FROM business as competetor, business
+WHERE business.businessId <> competetor.businessId and
+    EXISTS (SELECT category 
+            FROM BusinessCategory
+            WHERE BusinessCategory.businessId = business.businessId and
+                category IN (SELECT category 
+                        FROM BusinessCategory
+                        WHERE BusinessCategory.businessId = competetor.businessId))
+GROUP BY business.businessId;
 
 -- popular
 
 -- review frequency
 
-SELECT business.businessId as businessId, business.review_count/ages.businessAge
-FROM business, (SELECT businessId, MAX(rating.date)-MIN(rating.date) as businessAge
+SELECT business.businessId as businessId, business.review_count/ages.businessAge as reviewFrequency
+FROM business, (SELECT businessId, EXTRACT(days from MAX(rating.date)-MIN(rating.date)) as businessAge
                 FROM rating
                 GROUP BY businessId) ages
-WHERE business.businessId = ages.businessId;
+WHERE business.businessId = ages.businessId and ages.businessAge <> 0;
 
 -- checkins per person
 
