@@ -203,8 +203,7 @@ def parseJsonData(filename, dataType, conn):
 
     jsonFile.close()
 
-#password = input("Enter postgres password:")
-password = "D4t4b4s3PW!"
+password = input("Enter postgres password:")
 try:
     conn = psycopg2.connect(f"dbname='milestone2db' user='postgres' host='localhost' password={password}")
 except:
