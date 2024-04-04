@@ -1,8 +1,8 @@
 import json
-
+import psycopg2
 
 def cleanStr4SQL(s):
-    return s.replace("'","''").replace("\n"," ")
+    return s.replace("'","`").replace("\n"," ")
 
 def getAttributes(attributes):
     L = []
@@ -13,9 +13,19 @@ def getAttributes(attributes):
             L.append((attribute,value))
     return L
 
+def int2BoolStr (value):
+    if value == 0:
+        return 'false'
+    else:
+        return 'true'
+
 def parseBusinessLine(data):
     return \
+        "INSERT INTO business (businessId, name, neighborhood, address, city, state, zipcode, latitude, longitude, stars, review_count, openStatus, reviewrating, numCheckins) " + \
+        "VALUES (" +  \
+        "'" + data['business_id'] + "'," +  \
         "'" + cleanStr4SQL(data['name']) + "'," + \
+	    "'" + cleanStr4SQL(data['neighborhood']) + "'," + \
         "'" + cleanStr4SQL(data['address']) + "'," + \
         "'" + cleanStr4SQL(data['city']) + "'," +  \
         "'" + data['state'] + "'," + \
@@ -24,34 +34,75 @@ def parseBusinessLine(data):
         str(data['longitude']) + "," + \
         str(data['stars']) + "," + \
         str(data['review_count']) + "," + \
-        str(data['is_open'])
+        int2BoolStr(data['is_open']) + "," + \
+        " 0.0 , 0);"
 
-def parseBusinessJson(jsonFile, outfile):
+def parseBusinessJson(jsonFile, cur, conn):
     line = jsonFile.readline()
 
     while line:
         data = json.loads(line)
         
+        #inserting business data
         business_str =  parseBusinessLine(data)
-        outfile.write(business_str + '\n')
+        #try:
+        cur.execute(business_str)
+        # except:
+        #     print("error inserting business data")
+        #     print(business_str)
+        #     quit()
 
         #business id
         business = data['business_id']
 
         #get categories
-        for category in data['categories']:
-            category_str = "'" + business + "','" + category + "'"
-            outfile.write(category_str + '\n')
+        try:
+            for category in data['categories']:
+                category_str = "INSERT INTO BusinessCategory (businessId, category) VALUES ('" + business + "','" + cleanStr4SQL(category) + "');"
+                cur.execute(category_str) #inserting each category
+        except:
+            print("error inserting business categories")
+            print(data['categories'])
+            print(category_str)
+            quit()
+        
 
         #get hours
-        for (day,hours) in data['hours'].items():
-            hours_str = "'" + business + "','" + str(day) + "','" + str(hours.split('-')[0]) + "','" + str(hours.split('-')[1]) + "'"
-            outfile.write( hours_str +'\n')
+        try:
+            for (day,hours) in data['hours'].items():
+                hours_str = "INSERT INTO BusinessHours (businessId, day, openTime, closeTime) VALUES ('" + business + "','" + str(day) + "'," + "TO_TIMESTAMP('" + str(hours.split('-')[0]) + "', 'HH24:MI')::TIME" + ", " + "TO_TIMESTAMP('" + str(hours.split('-')[1]) + "', 'HH24:MI')::TIME" + ");"
+                cur.execute(hours_str) #inserting hours of operation
+        except:
+            print("error inserting business hours")
+            print(data['hours'].items())
+            print(hours_str)
+            quit()
 
         #get attributes
-        for (attr,value) in getAttributes(data['attributes']):
-            attr_str = "'" + business + "','" + str(attr) + "','" + str(value)  + "'"
-            outfile.write(attr_str +'\n')
+        #try:
+        for (attr,value) in data['attributes'].items():
+            if isinstance(value, bool):
+                value = str(value).lower()
+                attr_str = "INSERT INTO BusinessAttribute (businessId, name, value) VALUES ('" + cleanStr4SQL(data['business_id']) + "','" + cleanStr4SQL(attr) + "','" + cleanStr4SQL(value) + "');"
+                cur.execute(attr_str)
+            elif isinstance(value, dict):
+                for (subattr,subvalue) in value.items():
+                    subvalue = str(subvalue).lower()
+                    attr_str = "INSERT INTO BusinessAttribute (businessId, name, value) VALUES ('" + cleanStr4SQL(data['business_id']) + "','" + cleanStr4SQL(attr + "_" + subattr) + "','" + cleanStr4SQL(subvalue) + "');"
+                    cur.execute(attr_str)
+            elif isinstance(value, str):
+                attr_str = "INSERT INTO BusinessAttribute (businessId, name, value) VALUES ('" + cleanStr4SQL(data['business_id']) + "','" + cleanStr4SQL(attr) + "','" + cleanStr4SQL(value) + "');"
+                cur.execute(attr_str)
+            elif isinstance(value, int):
+                attr_str = "INSERT INTO BusinessAttribute (businessId, name, value) VALUES ('" + cleanStr4SQL(data['business_id']) + "','" + cleanStr4SQL(attr) + "','" + str(value) + "');"
+                cur.execute(attr_str)
+        # except:
+        #     print("error inserting business attributes")
+        #     print(data['attributes'])
+        #     print(attr_str)
+        #     quit()
+        conn.commit()
+        
 
         line = jsonFile.readline()
 
@@ -62,18 +113,24 @@ def parseReviewLine(data):
         "'" + data['business_id'] + "'," + \
         str(data['stars']) + "," + \
         "'" + data['date'] + "'," + \
-        "'" + cleanStr4SQL(data['text']) + "'," +  \
+        "'" + cleanStr4SQL(data['text']) + "" + "'," +  \
         str(data['useful']) + "," +  \
         str(data['funny']) + "," + \
         str(data['cool'])
 
-def parseReviewJson(jsonFile, outfile):
+def parseReviewJson(jsonFile, cur, conn):
     line = jsonFile.readline()
     while line:
         data = json.loads(line)
         review_str = parseReviewLine(data)
-        outfile.write(review_str +'\n')
+        #try:
+        cur.execute("INSERT INTO rating (reviewId, userId, businessId, stars, date, text, useful_vote, funny_vote, cool_vote) VALUES (" + review_str + ");")
+        # except:
+        #     print("error inserting review data")
+        #     print(review_str)
+        #     quit()
         line = jsonFile.readline()
+    conn.commit()
 
 #parse top level json data of single user
 def parseUserLine(data):
@@ -102,7 +159,7 @@ def parseUserJson(jsonFile, outfile):
             outfile.write(friend_str)
         line = jsonFile.readline()
     
-def parseCheckinJson(jsonFile, outfile):
+def parseCheckinJson(jsonFile, cur, conn):
     line = jsonFile.readline()
 
     while line:
@@ -111,40 +168,49 @@ def parseCheckinJson(jsonFile, outfile):
         for (dayofweek,time) in data['time'].items():
             for (hour,count) in time.items():
                 checkin_str = "'" + business_id + "',"  \
-                                "'" + dayofweek + "'," + \
-                                "'" + hour + "'," + \
+                                "'" + str(dayofweek) + "'," + \
+                                "TO_TIMESTAMP('" + str(hour) + "', 'HH24:MI')::TIME" + "," + \
                                 str(count)
-                outfile.write(checkin_str + "\n")
+                try:
+                    cur.execute("INSERT INTO checkin (businessId, day, hour, count) VALUES (" + checkin_str + ");")
+                except:
+                    print("error inserting checkin data")
+                    print(checkin_str)
+                    quit()
+        conn.commit()
         line = jsonFile.readline()
 
-def parseJsonData(filename, dataType):
+def parseJsonData(filename, dataType, conn):
     jsonFile = open(filename,"r")
-    outfile =  open(filename + ".txt", "w")
     print("parsing " + dataType)
+    cur = conn.cursor()
 
     match dataType:
         case "business":
-            parseBusinessJson(jsonFile, outfile)
+            parseBusinessJson(jsonFile, cur, conn)
 
-        case "user":
-            parseUserJson(jsonFile, outfile)
+        # case "user":
+        #     parseUserJson(jsonFile, outfile)
 
         case "review":
-            parseReviewJson(jsonFile, outfile)
+            parseReviewJson(jsonFile, cur, conn)
 
         case "checkin":
-            parseCheckinJson(jsonFile, outfile)
+            parseCheckinJson(jsonFile, cur, conn)
 
         case _:
             print("unknown data type")
 
-    outfile.close()
     jsonFile.close()
 
-
-parseJsonData(".//yelp_user.JSON", "user")
-parseJsonData(".//yelp_business.JSON", "business")
-parseJsonData(".//yelp_checkin.JSON", "checkin")
-parseJsonData(".//yelp_review.JSON", "review")
-
-
+#password = input("Enter postgres password:")
+password = "D4t4b4s3PW!"
+try:
+    conn = psycopg2.connect(f"dbname='milestone2db' user='postgres' host='localhost' password={password}")
+except:
+    print('Unable to connect to the database!')
+#parseJsonData(".//yelp_user.JSON", "user")
+parseJsonData("./Yelp-CptS451/yelp_business.JSON", "business", conn)
+parseJsonData("./Yelp-CptS451/yelp_checkin.JSON", "checkin", conn)
+parseJsonData("./Yelp-CptS451/yelp_review.JSON", "review", conn)
+conn.close()
