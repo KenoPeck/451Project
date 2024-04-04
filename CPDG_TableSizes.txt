@@ -1,0 +1,7 @@
+business: 11481
+businessattribute: 227536
+businesscategory: 33619
+businesshours: 55502
+checkin: 481360
+rating: 416479
+zipcodedata: 32630
