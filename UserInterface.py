@@ -5,9 +5,18 @@ from PyQt5 import uic, QtCore
 from PyQt5.QtGui import QIcon, QPixmap
 import psycopg2
 
+import math
+
 qtCreatorFile = "Milestone3App.ui" # Enter file here.
 
 Ui_MainWindow, QtBaseClass = uic.loadUiType(qtCreatorFile)
+
+# helper function that rounds x to 2 sig figs
+def roundToSigFig(x):
+                if (x != 0.0):
+                    return round(x, -int(math.floor(math.log10(abs(x))-1)))
+                else:
+                    return x
 
 class Milestone3(QMainWindow):
     def __init__(self):
@@ -189,7 +198,47 @@ class Milestone3(QMainWindow):
                     currentRowCount += 1
             except:
                 print('Failed To Load Top Category Table on Zipcode Change!')
-    
+
+            # update popular business list
+            sql_str = """
+                SELECT business.name as name, CAST(business.review_count as FLOAT)/ages.businessAge as reviewFrequency, local.localPopularity as localPopularity
+                FROM business, (SELECT businessId, MAX(rating.date)-MIN(rating.date) as businessAge
+                                FROM rating
+                                GROUP BY businessId) ages, (SELECT businessId, business.numCheckins/CAST(zipcodeData.population as FLOAT) as localPopularity
+                                                            FROM business, zipcodeData
+                                                            WHERE business.zipcode = '""" + zipcode + """' and business.zipcode = zipcodeData.zipcode) local
+                WHERE business.businessId = ages.businessId and business.businessId = local.businessId and business.zipcode = '""" + zipcode + """' and ages.businessAge <> 0;
+            """
+
+            try:
+                results = self.executeQuery(sql_str)
+                self.ui.popularBusinessTable.setColumnCount(len(results[0]))
+                self.ui.popularBusinessTable.setRowCount(len(results))
+                self.ui.popularBusinessTable.setHorizontalHeaderLabels(['Business Name', 'Reviews Per Month', 'Visited by % Population'])
+
+                # sort results by popularity score
+                results = sorted(results, key = lambda row : row[1]*row[2], reverse = True)
+
+                # populate popular business list
+                for rowIndex in range(0, len(results)):
+                    row = results[rowIndex]
+
+                    # business name
+                    self.ui.popularBusinessTable.setItem(rowIndex, 0, QTableWidgetItem(str(row[0])))
+
+                    # review frequency
+                    self.ui.popularBusinessTable.setItem(rowIndex, 1, QTableWidgetItem(str(roundToSigFig(row[1]*30.0))))
+
+                    # local popularity
+                    self.ui.popularBusinessTable.setItem(rowIndex, 2, QTableWidgetItem(str(roundToSigFig(row[2]*100.0))))
+
+                self.ui.popularBusinessTable.setColumnWidth(0,200)
+                self.ui.popularBusinessTable.setColumnWidth(1,150)
+                self.ui.popularBusinessTable.setColumnWidth(2,150)
+            except Exception as e:
+                print('Failed To Load Popular Businesses on Zipcode Change!')
+                print(e)
+
     def categoryChanged(self):
         if (self.ui.stateList.currentIndex() >= 0) and (len(self.ui.cityList.selectedItems()) > 0) and (len(self.ui.zipcodeList.selectedItems()) > 0) and (len(self.ui.categoryList.selectedItems()) > 0):
             city = self.ui.cityList.selectedItems()[0].text()
