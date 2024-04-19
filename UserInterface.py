@@ -5,13 +5,13 @@ from PyQt5 import uic, QtCore
 from PyQt5.QtGui import QIcon, QPixmap
 import psycopg2
 
-qtCreatorFile = "Milestone1App.ui" # Enter file here.
+qtCreatorFile = "Milestone3App.ui" # Enter file here.
 
 Ui_MainWindow, QtBaseClass = uic.loadUiType(qtCreatorFile)
 
-class Milestone2(QMainWindow):
+class Milestone3(QMainWindow):
     def __init__(self):
-        super(Milestone2, self).__init__()
+        super(Milestone3, self).__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         self.ui.enterPW.clicked.connect(self.connectUI)
@@ -56,6 +56,11 @@ class Milestone2(QMainWindow):
         self.ui.cityList.clear()
         self.ui.zipcodeList.clear()
         self.ui.categoryList.clear()
+        self.ui.zipcodeMedianIncomeLabel.clear()
+        self.ui.zipcodeAvgIncomeLabel.clear()
+        self.ui.zipcodePopulationLabel.clear()
+        self.ui.zipcodeNumBusinessesLabel.clear()
+        self.ui.topCategories.clear()
         state = self.ui.stateList.currentText()
         if (self.ui.stateList.currentIndex() >= 0):
             sql_str = "SELECT distinct city FROM business WHERE state ='" + state + "' ORDER BY city;"
@@ -97,6 +102,11 @@ class Milestone2(QMainWindow):
             state = self.ui.stateList.currentText()
             self.ui.zipcodeList.clear()
             self.ui.categoryList.clear()
+            self.ui.zipcodeMedianIncomeLabel.clear()
+            self.ui.zipcodeAvgIncomeLabel.clear()
+            self.ui.zipcodePopulationLabel.clear()
+            self.ui.zipcodeNumBusinessesLabel.clear()
+            self.ui.topCategories.clear()
             sql_str = "SELECT distinct zipcode FROM business WHERE state = '" + state + "' AND city = '" + city + "' ORDER BY  zipcode;"
             try:
                 results = self.executeQuery(sql_str)
@@ -123,6 +133,11 @@ class Milestone2(QMainWindow):
             state = self.ui.stateList.currentText()
             zipcode = self.ui.zipcodeList.selectedItems()[0].text()
             self.ui.categoryList.clear()
+            self.ui.zipcodeMedianIncomeLabel.clear()
+            self.ui.zipcodeAvgIncomeLabel.clear()
+            self.ui.zipcodePopulationLabel.clear()
+            self.ui.zipcodeNumBusinessesLabel.clear()
+            self.ui.topCategories.clear()
             sql_str = "SELECT distinct category FROM businesscategory WHERE businessid IN (SELECT businessid FROM business WHERE state = '" + state + "' AND city = '" + city + "' AND zipcode = '" + zipcode + "') ORDER BY category;"
             try:
                 results = self.executeQuery(sql_str)
@@ -142,6 +157,38 @@ class Milestone2(QMainWindow):
                     currentRowCount += 1
             except:
                 print('Failed To Load Business Table on Zipcode Change!')
+            
+            sql_str = "SELECT medianincome, meanincome, population FROM zipcodedata WHERE zipcode = '" + zipcode + "';"
+            try:
+                results = self.executeQuery(sql_str)
+                self.ui.zipcodeMedianIncomeLabel.setText(str(results[0][0]))
+                self.ui.zipcodeAvgIncomeLabel.setText(str(results[0][1]))
+                self.ui.zipcodePopulationLabel.setText(str(results[0][2]))
+            except:
+                print('Failed To Load Zipicode Stats on Zipcode Change!')
+                
+            sql_str = "SELECT COUNT(businessid) FROM business WHERE zipcode = '" + zipcode + "';"
+            try:
+                results = self.executeQuery(sql_str)
+                self.ui.zipcodeNumBusinessesLabel.setText(str(results[0][0]))
+            except:
+                print('Failed To Load Zipicode Stats on Zipcode Change!')
+
+            sql_str = "SELECT COUNT(DISTINCT b.businessid) AS num_businesses, c.category FROM business b JOIN businesscategory c ON b.businessid = c.businessid WHERE b.zipcode = '" + zipcode + "' GROUP BY c.category ORDER BY num_businesses DESC;"
+            try:
+                results = self.executeQuery(sql_str)
+                self.ui.topCategories.setColumnCount(len(results[0]))
+                self.ui.topCategories.setRowCount(len(results))
+                self.ui.topCategories.setHorizontalHeaderLabels(['#', 'Category'])
+                self.ui.topCategories.setColumnWidth(0,50)
+                self.ui.topCategories.setColumnWidth(1,200)
+                currentRowCount = 0
+                for row in results:
+                    for colCount in range(0,len(results[0])):
+                        self.ui.topCategories.setItem(currentRowCount, colCount, QTableWidgetItem(str(row[colCount])))
+                    currentRowCount += 1
+            except:
+                print('Failed To Load Top Category Table on Zipcode Change!')
     
     def categoryChanged(self):
         if (self.ui.stateList.currentIndex() >= 0) and (len(self.ui.cityList.selectedItems()) > 0) and (len(self.ui.zipcodeList.selectedItems()) > 0) and (len(self.ui.categoryList.selectedItems()) > 0):
@@ -184,6 +231,6 @@ class Milestone2(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = Milestone2()
+    window = Milestone3()
     window.show()
     sys.exit(app.exec_())
