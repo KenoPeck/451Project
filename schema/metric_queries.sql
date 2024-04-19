@@ -34,3 +34,18 @@ SELECT businessId, business.numCheckins/CAST(zipcodeData.population as FLOAT) as
 FROM business, zipcodeData
 WHERE business.zipcode = zipcodeData.zipcode
 ORDER BY localPopularity;
+
+
+
+-- combined stats for successful businesses
+SELECT ratingDiff.name as name, ages.businessAge as businessAge, ratingDiff.ratingDifference as ratingDifference
+FROM (SELECT businessId, MAX(rating.date)-MIN(rating.date) as businessAge
+    FROM rating
+    GROUP BY businessId) ages, (SELECT business.businessId as businessId, business.name as name, business.reviewrating - AVG(competetor.reviewrating) as ratingDifference
+                                FROM business as competetor, business, BusinessCategory as competetorCategory, BusinessCategory
+                                WHERE business.businessId <> competetor.businessId and
+                                    BusinessCategory.businessId = business.businessId and
+                                    competetorCategory.businessId = competetor.businessId and
+                                    BusinessCategory.category = competetorCategory.category
+                                GROUP BY business.businessId) ratingDiff
+WHERE ages.businessId = ratingDiff.businessId

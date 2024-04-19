@@ -239,6 +239,50 @@ class Milestone3(QMainWindow):
                 print('Failed To Load Popular Businesses on Zipcode Change!')
                 print(e)
 
+            # update successful business list
+            sql_str = """
+                SELECT ratingDiff.name as name, ages.businessAge as businessAge, ratingDiff.ratingDifference as ratingDifference
+                FROM (SELECT businessId, MAX(rating.date)-MIN(rating.date) as businessAge
+                    FROM rating
+                    GROUP BY businessId) ages, (SELECT business.businessId as businessId, business.zipcode as zipcode, business.name as name, business.reviewrating - AVG(competetor.reviewrating) as ratingDifference
+                                                FROM business as competetor, business, BusinessCategory as competetorCategory, BusinessCategory
+                                                WHERE business.businessId <> competetor.businessId and
+                                                    BusinessCategory.businessId = business.businessId and
+                                                    competetorCategory.businessId = competetor.businessId and
+                                                    BusinessCategory.category = competetorCategory.category
+                                                GROUP BY business.businessId) ratingDiff
+                WHERE ages.businessId = ratingDiff.businessId and ratingDiff.zipcode = '""" + zipcode + """'
+            """
+
+            try:
+                results = self.executeQuery(sql_str)
+                self.ui.successfulBusinessTable.setColumnCount(len(results[0]))
+                self.ui.successfulBusinessTable.setRowCount(len(results))
+                self.ui.successfulBusinessTable.setHorizontalHeaderLabels(['Business Name', 'Business Age (days)', 'Stars Above Average'])
+
+                # sort results by success score
+                results = sorted(results, key = lambda row : row[1]*(row[2]+5)**2, reverse = True)
+
+                # populate successful business list
+                for rowIndex in range(0, len(results)):
+                    row = results[rowIndex]
+
+                    # business name
+                    self.ui.successfulBusinessTable.setItem(rowIndex, 0, QTableWidgetItem(str(row[0])))
+
+                    # age
+                    self.ui.successfulBusinessTable.setItem(rowIndex, 1, QTableWidgetItem(str(row[1])))
+
+                    # rating difference
+                    self.ui.successfulBusinessTable.setItem(rowIndex, 2, QTableWidgetItem(str(roundToSigFig(row[2]))))
+
+                self.ui.successfulBusinessTable.setColumnWidth(0,200)
+                self.ui.successfulBusinessTable.setColumnWidth(1,150)
+                self.ui.successfulBusinessTable.setColumnWidth(2,150)
+            except Exception as e:
+                print('Failed To Load Successful Businesses on Zipcode Change!')
+                print(e)
+
     def categoryChanged(self):
         if (self.ui.stateList.currentIndex() >= 0) and (len(self.ui.cityList.selectedItems()) > 0) and (len(self.ui.zipcodeList.selectedItems()) > 0) and (len(self.ui.categoryList.selectedItems()) > 0):
             city = self.ui.cityList.selectedItems()[0].text()
