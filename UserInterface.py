@@ -70,6 +70,11 @@ class Milestone3(QMainWindow):
         self.ui.zipcodePopulationLabel.clear()
         self.ui.zipcodeNumBusinessesLabel.clear()
         self.ui.topCategories.clear()
+
+        #clear popular and successful business lists
+        self.ui.popularBusinessTable.clear()
+        self.ui.successfulBusinessTable.clear()
+
         state = self.ui.stateList.currentText()
         if (self.ui.stateList.currentIndex() >= 0):
             sql_str = "SELECT distinct city FROM business WHERE state ='" + state + "' ORDER BY city;"
@@ -107,6 +112,10 @@ class Milestone3(QMainWindow):
                 
     def cityChanged(self):
         if (self.ui.stateList.currentIndex() >= 0) and (len(self.ui.cityList.selectedItems()) > 0):
+            #clear popular and successful business lists
+            self.ui.popularBusinessTable.clear()
+            self.ui.successfulBusinessTable.clear()
+
             city = self.ui.cityList.selectedItems()[0].text()
             state = self.ui.stateList.currentText()
             self.ui.zipcodeList.clear()
@@ -212,9 +221,10 @@ class Milestone3(QMainWindow):
 
             try:
                 results = self.executeQuery(sql_str)
-                self.ui.popularBusinessTable.setColumnCount(len(results[0]))
+                self.ui.popularBusinessTable.clear()
+                self.ui.popularBusinessTable.setColumnCount(len(results[0])+1)
                 self.ui.popularBusinessTable.setRowCount(len(results))
-                self.ui.popularBusinessTable.setHorizontalHeaderLabels(['Business Name', 'Reviews Per Month', 'Visited by % Population'])
+                self.ui.popularBusinessTable.setHorizontalHeaderLabels(['Rank', 'Business Name', 'Reviews Per Month', 'Visited by % Population'])
 
                 # sort results by popularity score
                 results = sorted(results, key = lambda row : row[1]*row[2], reverse = True)
@@ -223,18 +233,22 @@ class Milestone3(QMainWindow):
                 for rowIndex in range(0, len(results)):
                     row = results[rowIndex]
 
+                    # business rank
+                    self.ui.popularBusinessTable.setItem(rowIndex, 0, QTableWidgetItem(str(rowIndex+1)))
+
                     # business name
-                    self.ui.popularBusinessTable.setItem(rowIndex, 0, QTableWidgetItem(str(row[0])))
+                    self.ui.popularBusinessTable.setItem(rowIndex, 1, QTableWidgetItem(str(row[0])))
 
                     # review frequency
-                    self.ui.popularBusinessTable.setItem(rowIndex, 1, QTableWidgetItem(str(roundToSigFig(row[1]*30.0))))
+                    self.ui.popularBusinessTable.setItem(rowIndex, 2, QTableWidgetItem(str(roundToSigFig(row[1]*30.0))))
 
                     # local popularity
-                    self.ui.popularBusinessTable.setItem(rowIndex, 2, QTableWidgetItem(str(roundToSigFig(row[2]*100.0))))
+                    self.ui.popularBusinessTable.setItem(rowIndex, 3, QTableWidgetItem(str(roundToSigFig(row[2]*100.0))))
 
-                self.ui.popularBusinessTable.setColumnWidth(0,200)
-                self.ui.popularBusinessTable.setColumnWidth(1,150)
+                self.ui.popularBusinessTable.setColumnWidth(0,50)
+                self.ui.popularBusinessTable.setColumnWidth(1,200)
                 self.ui.popularBusinessTable.setColumnWidth(2,150)
+                self.ui.popularBusinessTable.setColumnWidth(3,150)
             except Exception as e:
                 print('Failed To Load Popular Businesses on Zipcode Change!')
                 print(e)
@@ -256,9 +270,10 @@ class Milestone3(QMainWindow):
 
             try:
                 results = self.executeQuery(sql_str)
-                self.ui.successfulBusinessTable.setColumnCount(len(results[0]))
+                self.ui.successfulBusinessTable.clear()
+                self.ui.successfulBusinessTable.setColumnCount(len(results[0])+1)
                 self.ui.successfulBusinessTable.setRowCount(len(results))
-                self.ui.successfulBusinessTable.setHorizontalHeaderLabels(['Business Name', 'Business Age (days)', 'Stars Above Average'])
+                self.ui.successfulBusinessTable.setHorizontalHeaderLabels(['Rank', 'Business Name', 'Business Age (days)', 'Stars Above Average'])
 
                 # sort results by success score
                 results = sorted(results, key = lambda row : row[1]*(row[2]+5)**2, reverse = True)
@@ -267,18 +282,22 @@ class Milestone3(QMainWindow):
                 for rowIndex in range(0, len(results)):
                     row = results[rowIndex]
 
+                    # business rank
+                    self.ui.successfulBusinessTable.setItem(rowIndex, 0, QTableWidgetItem(str(rowIndex+1)))
+
                     # business name
-                    self.ui.successfulBusinessTable.setItem(rowIndex, 0, QTableWidgetItem(str(row[0])))
+                    self.ui.successfulBusinessTable.setItem(rowIndex, 1, QTableWidgetItem(str(row[0])))
 
                     # age
-                    self.ui.successfulBusinessTable.setItem(rowIndex, 1, QTableWidgetItem(str(row[1])))
+                    self.ui.successfulBusinessTable.setItem(rowIndex, 2, QTableWidgetItem(str(row[1])))
 
                     # rating difference
-                    self.ui.successfulBusinessTable.setItem(rowIndex, 2, QTableWidgetItem(str(roundToSigFig(row[2]))))
+                    self.ui.successfulBusinessTable.setItem(rowIndex, 3, QTableWidgetItem(str(roundToSigFig(row[2]))))
 
-                self.ui.successfulBusinessTable.setColumnWidth(0,200)
-                self.ui.successfulBusinessTable.setColumnWidth(1,150)
+                self.ui.successfulBusinessTable.setColumnWidth(0,50)
+                self.ui.successfulBusinessTable.setColumnWidth(1,200)
                 self.ui.successfulBusinessTable.setColumnWidth(2,150)
+                self.ui.successfulBusinessTable.setColumnWidth(3,150)
             except Exception as e:
                 print('Failed To Load Successful Businesses on Zipcode Change!')
                 print(e)
