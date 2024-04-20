@@ -131,33 +131,6 @@ def parseReviewJson(jsonFile, cur, conn):
         #     quit()
         line = jsonFile.readline()
     conn.commit()
-
-#parse top level json data of single user
-def parseUserLine(data):
-    return \
-        "'" + data['user_id'] + "'," + \
-        "'" + cleanStr4SQL(data["name"]) + "'," + \
-        "'" + cleanStr4SQL(data["yelping_since"]) + "'," + \
-        str(data["review_count"]) + "," + \
-        str(data["fans"]) + "," + \
-        str(data["average_stars"]) + "," + \
-        str(data["funny"]) + "," + \
-        str(data["useful"]) + "," + \
-        str(data["cool"])
-        
-def parseUserJson(jsonFile, outfile):
-    line = jsonFile.readline()
-    while line:
-        data = json.loads(line)
-        
-        user_str = parseUserLine(data)
-        outfile.write(user_str+"\n")
-
-        user_id = data["user_id"]
-        for friend in data["friends"]:
-            friend_str = "'" + user_id + "','" + friend + "'" + "\n"
-            outfile.write(friend_str)
-        line = jsonFile.readline()
     
 def parseCheckinJson(jsonFile, cur, conn):
     line = jsonFile.readline()
@@ -189,9 +162,6 @@ def parseJsonData(filename, dataType, conn):
         case "business":
             parseBusinessJson(jsonFile, cur, conn)
 
-        # case "user":
-        #     parseUserJson(jsonFile, outfile)
-
         case "review":
             parseReviewJson(jsonFile, cur, conn)
 
@@ -201,15 +171,44 @@ def parseJsonData(filename, dataType, conn):
         case _:
             print("unknown data type")
 
+    cur.close()
     jsonFile.close()
 
+#load sql files
+sqlFile = open("./zipData.sql","r")
+zipcodeDataSQL = sqlFile.read()
+sqlFile.close()
+
+sqlFile = open("./CPDG_relations_v2.sql","r")
+sqlDDL = sqlFile.read()
+sqlFile.close()
+
+sqlFile = open("./CPDG_UPDATE.sql","r")
+sqlUpdate = sqlFile.read()
+sqlFile.close()
+
+#connect to database
 password = input("Enter postgres password:")
 try:
-    conn = psycopg2.connect(f"dbname='milestone2db' user='postgres' host='localhost' password={password}")
+    conn = psycopg2.connect(f"dbname='milestone3db' user='postgres' host='localhost' password={password}")
 except:
     print('Unable to connect to the database!')
-#parseJsonData(".//yelp_user.JSON", "user")
+    exit()
+
+#create tables
+cur = conn.cursor()
+cur.execute(sqlDDL)
+conn.commit()
+
+#fill tables
+cur.execute(zipcodeDataSQL)
+conn.commit()
 parseJsonData("./Yelp-CptS451/yelp_business.JSON", "business", conn)
 parseJsonData("./Yelp-CptS451/yelp_checkin.JSON", "checkin", conn)
 parseJsonData("./Yelp-CptS451/yelp_review.JSON", "review", conn)
+
+#update tables
+cur.execute(sqlUpdate)
+conn.commit()
+cur.close()
 conn.close()
