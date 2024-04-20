@@ -32,8 +32,6 @@ class Milestone3(QMainWindow):
         self.ui.cityList.itemSelectionChanged.connect(self.cityChanged)
         self.ui.zipcodeList.itemSelectionChanged.connect(self.zipcodeChanged)
         self.ui.categoryList.itemSelectionChanged.connect(self.categoryChanged)
-        self.ui.bName.textChanged.connect(self.getBusinessNames)
-        self.ui.businesses.itemSelectionChanged.connect(self.displayBusinessCity)
 
     def executeQuery(self, sql_str):
         try:
@@ -84,6 +82,14 @@ class Milestone3(QMainWindow):
                     self.ui.cityList.addItem(row[0])
             except:
                 print('Failed To Load City List!')
+                
+            sql_str = "SELECT distinct category FROM businesscategory WHERE businessid IN (SELECT businessid FROM business WHERE state = '" + state + "') ORDER BY category;"
+            try:
+                results = self.executeQuery(sql_str)
+                for row in results:
+                    self.ui.categoryList.addItem(row[0])
+            except:
+                print('Failed To Load Category Table on Zipcode Change!')
               
             for i in reversed(range(self.ui.businessTable.rowCount())):
                 self.ui.businessTable.removeRow(i)
@@ -132,6 +138,14 @@ class Milestone3(QMainWindow):
                     self.ui.zipcodeList.addItem(row[0])
             except:
                 print('Failed To Load Zipcode Table on City Change!')
+                
+            sql_str = "SELECT distinct category FROM businesscategory WHERE businessid IN (SELECT businessid FROM business WHERE state = '" + state + "' AND city = '" + city + "') ORDER BY category;"
+            try:
+                results = self.executeQuery(sql_str)
+                for row in results:
+                    self.ui.categoryList.addItem(row[0])
+            except:
+                print('Failed To Load Category Table on Zipcode Change!')
                 
             sql_str = "SELECT name,address,city,stars,review_count,reviewrating,numcheckins,state FROM business WHERE state = '" + state + "' AND city = '" + city + "' ORDER BY  name;"
             try:
@@ -224,7 +238,7 @@ class Milestone3(QMainWindow):
                 self.ui.popularBusinessTable.clear()
                 self.ui.popularBusinessTable.setColumnCount(len(results[0])+1)
                 self.ui.popularBusinessTable.setRowCount(len(results))
-                self.ui.popularBusinessTable.setHorizontalHeaderLabels(['Rank', 'Business Name', 'Reviews Per Month', 'Visited by % Population'])
+                self.ui.popularBusinessTable.setHorizontalHeaderLabels(['Rank', 'Business Name', 'Reviews Per Month', 'Visited by % Pop.'])
 
                 # sort results by popularity score
                 results = sorted(results, key = lambda row : row[1]*row[2], reverse = True)
@@ -319,26 +333,35 @@ class Milestone3(QMainWindow):
                     currentRowCount += 1
             except:
                 print('Failed To Load Business Table on Category Change!')
-        
-    def getBusinessNames(self):
-        self.ui.businesses.clear()
-        businessname = self.ui.bName.text()
-        sql_str = "SELECT name FROM business WHERE name LIKE '%" + businessname + "%' ORDER BY name;"
-        try:
-            results = self.executeQuery(sql_str)
-            for row in results:
-                self.ui.businesses.addItem(row[0])
-        except:
-            print('Query Failed!')
-            
-    def displayBusinessCity(self):
-        businessname = self.ui.businesses.selectedItems()[0].text()
-        sql_str = "SELECT city FROM business WHERE name = '" + businessname + "';"
-        try:
-            results = self.executeQuery(sql_str)
-            self.ui.bCity.setText(results[0][0])
-        except:
-            print('Query Failed!')
+        elif (self.ui.stateList.currentIndex() >= 0) and (len(self.ui.cityList.selectedItems()) > 0) and (len(self.ui.categoryList.selectedItems()) > 0):
+            city = self.ui.cityList.selectedItems()[0].text()
+            state = self.ui.stateList.currentText()
+            category = self.ui.categoryList.selectedItems()[0].text()                
+            sql_str = "SELECT name,address,city,stars,review_count,reviewrating,numcheckins,state FROM business WHERE state = '" + state + "' AND city = '" + city + "' AND businessid IN (SELECT businessID FROM businesscategory WHERE category = '" + category + "') ORDER BY name;"
+            try:
+                results = self.executeQuery(sql_str)
+                self.ui.businessTable.setRowCount(len(results))
+                currentRowCount = 0
+                for row in results:
+                    for colCount in range(0,len(results[0])-1):
+                        self.ui.businessTable.setItem(currentRowCount, colCount, QTableWidgetItem(str(row[colCount])))
+                    currentRowCount += 1
+            except:
+                print('Failed To Load Business Table on Category Change!')
+        elif (self.ui.stateList.currentIndex() >= 0) and (len(self.ui.categoryList.selectedItems()) > 0):
+            state = self.ui.stateList.currentText()
+            category = self.ui.categoryList.selectedItems()[0].text()                
+            sql_str = "SELECT name,address,city,stars,review_count,reviewrating,numcheckins,state FROM business WHERE state = '" + state + "' AND businessid IN (SELECT businessID FROM businesscategory WHERE category = '" + category + "') ORDER BY name;"
+            try:
+                results = self.executeQuery(sql_str)
+                self.ui.businessTable.setRowCount(len(results))
+                currentRowCount = 0
+                for row in results:
+                    for colCount in range(0,len(results[0])-1):
+                        self.ui.businessTable.setItem(currentRowCount, colCount, QTableWidgetItem(str(row[colCount])))
+                    currentRowCount += 1
+            except:
+                print('Failed To Load Business Table on Category Change!')
             
 
 if __name__ == "__main__":
